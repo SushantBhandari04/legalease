@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Calendar, Filter, Search, SortAsc, SortDesc } from "lucide-react"
+import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2 } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,107 +11,107 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CaseTimeline } from "@/components/case-timeline"
-
-type Case = {
-  id: string
-  caseNumber: string
-  court: string
-  type: string
-  stage: "Filed" | "Hearing" | "Evidence" | "Arguments" | "Judgment" | "Closed"
-  status: "Active" | "Pending" | "Delayed" | "Completed"
-  progress: number
-  lastUpdated: string
-  nextHearing?: string
-}
+import { CaseForm } from "@/components/case-form"
+import { fetchCases, CaseFilters } from "@/lib/cases"
+import { Case } from "@/model/Case"
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession()
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCase, setSelectedCase] = useState<Case | null>(null)
+  const [cases, setCases] = useState<Case[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isCaseFormOpen, setIsCaseFormOpen] = useState(false)
+  const [editingCase, setEditingCase] = useState<Case | null>(null)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10
+  })
 
-  // Mock data for cases
-  const cases: Case[] = [
-    {
-      id: "1",
-      caseNumber: "CWP-1234/2023",
-      court: "Delhi High Court",
-      type: "Civil Writ Petition",
-      stage: "Hearing",
-      status: "Active",
-      progress: 40,
-      lastUpdated: "2023-11-15",
-      nextHearing: "2023-12-10",
-    },
-    {
-      id: "2",
-      caseNumber: "CRL-5678/2023",
-      court: "District Court, Mumbai",
-      type: "Criminal Appeal",
-      stage: "Evidence",
-      status: "Delayed",
-      progress: 30,
-      lastUpdated: "2023-10-20",
-      nextHearing: "2023-12-15",
-    },
-    {
-      id: "3",
-      caseNumber: "CS-9101/2022",
-      court: "Civil Court, Bangalore",
-      type: "Civil Suit",
-      stage: "Arguments",
-      status: "Active",
-      progress: 70,
-      lastUpdated: "2023-11-05",
-      nextHearing: "2023-11-25",
-    },
-    {
-      id: "4",
-      caseNumber: "ARB-1122/2023",
-      court: "Arbitration Tribunal",
-      type: "Arbitration",
-      stage: "Filed",
-      status: "Pending",
-      progress: 10,
-      lastUpdated: "2023-11-10",
-    },
-    {
-      id: "5",
-      caseNumber: "FAM-3344/2022",
-      court: "Family Court, Chennai",
-      type: "Divorce Petition",
-      stage: "Judgment",
-      status: "Active",
-      progress: 90,
-      lastUpdated: "2023-11-18",
-    },
-    {
-      id: "6",
-      caseNumber: "TAX-5566/2021",
-      court: "Income Tax Appellate Tribunal",
-      type: "Tax Appeal",
-      stage: "Closed",
-      status: "Completed",
-      progress: 100,
-      lastUpdated: "2023-09-30",
-    },
-  ]
+  // Fetch cases from API
+  const loadCases = async (filters: CaseFilters = {}) => {
+    if (status !== "authenticated") return
+    
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetchCases({
+        status: filterStatus === "all" ? undefined : filterStatus,
+        search: searchQuery || undefined,
+        sortBy: "lastUpdated",
+        sortOrder,
+        page: pagination.currentPage,
+        limit: pagination.limit,
+        ...filters
+      })
+      
+      setCases(response.cases)
+      setPagination(response.pagination)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load cases")
+      console.error("Error loading cases:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  // Filter and sort cases
-  const filteredCases = cases
-    .filter(
-      (c) =>
-        (filterStatus === "all" || c.status === filterStatus) &&
-        (searchQuery === "" ||
-          c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.court.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.type.toLowerCase().includes(searchQuery.toLowerCase())),
-    )
-    .sort((a, b) => {
-      const dateA = new Date(a.lastUpdated).getTime()
-      const dateB = new Date(b.lastUpdated).getTime()
-      return sortOrder === "asc" ? dateA - dateB : dateB - dateA
-    })
+  // Load cases on component mount and when filters change
+  useEffect(() => {
+    if (status === "authenticated") {
+      loadCases()
+    }
+  }, [status, filterStatus, searchQuery, sortOrder, pagination.currentPage])
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (status === "authenticated") {
+        setPagination(prev => ({ ...prev, currentPage: 1 }))
+        loadCases()
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  // Handle filter changes
+  const handleFilterChange = (newFilter: string) => {
+    setFilterStatus(newFilter)
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  const handleSortChange = (newSort: "asc" | "desc") => {
+    setSortOrder(newSort)
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }))
+  }
+
+  // Handle case form
+  const handleOpenCaseForm = (caseToEdit?: Case) => {
+    setEditingCase(caseToEdit || null)
+    setIsCaseFormOpen(true)
+  }
+
+  const handleCloseCaseForm = () => {
+    setIsCaseFormOpen(false)
+    setEditingCase(null)
+  }
+
+  const handleCaseFormSuccess = () => {
+    loadCases() // Refresh the cases list
+  }
 
   // Get status color
   const getStatusColor = (status: string) => {
@@ -157,7 +158,13 @@ export default function DashboardPage() {
             <p className="text-slate-600">Track and manage your legal cases</p>
           </div>
 
-          <Button className="bg-teal-600 hover:bg-teal-700">+ Add New Case</Button>
+          <Button 
+            className="bg-teal-600 hover:bg-teal-700"
+            onClick={() => handleOpenCaseForm()}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Case
+          </Button>
         </div>
 
         {/* Filters and Search */}
@@ -174,7 +181,7 @@ export default function DashboardPage() {
 
           <div className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-slate-500" />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={handleFilterChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -194,7 +201,7 @@ export default function DashboardPage() {
             ) : (
               <SortDesc className="h-4 w-4 text-slate-500" />
             )}
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "asc" | "desc")}>
+            <Select value={sortOrder} onValueChange={(value) => handleSortChange(value as "asc" | "desc")}>
               <SelectTrigger>
                 <SelectValue placeholder="Sort by date" />
               </SelectTrigger>
@@ -206,12 +213,36 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+            <span className="ml-2 text-slate-600">Loading cases...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">Error: {error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => loadCases()}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+
         {/* Case Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCases.length > 0 ? (
-            filteredCases.map((caseItem, index) => (
+        {!loading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cases.length > 0 ? (
+              cases.map((caseItem, index) => (
               <motion.div
-                key={caseItem.id}
+                key={caseItem.id || caseItem._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -252,22 +283,50 @@ export default function DashboardPage() {
                       {caseItem.nextHearing && (
                         <div className="flex items-center text-xs text-slate-600">
                           <Calendar className="h-3 w-3 mr-1" />
-                          Next hearing: {caseItem.nextHearing}
+                          Next hearing: {new Date(caseItem.nextHearing).toLocaleDateString()}
                         </div>
                       )}
 
-                      <div className="text-xs text-slate-500">Last updated: {caseItem.lastUpdated}</div>
+                      <div className="text-xs text-slate-500">
+                        Last updated: {new Date(caseItem.lastUpdated).toLocaleDateString()}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
             ))
-          ) : (
-            <div className="col-span-full text-center py-8">
-              <p className="text-slate-500">No cases found matching your filters.</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <p className="text-slate-500">No cases found. Create your first case to get started!</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && !error && pagination.totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-2 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={!pagination.hasPrevPage}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-slate-600">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={!pagination.hasNextPage}
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {/* Case Timeline View */}
         {selectedCase && (
@@ -318,7 +377,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-slate-500">Last Updated</h3>
-                          <p>{selectedCase.lastUpdated}</p>
+                          <p>{new Date(selectedCase.lastUpdated).toLocaleDateString()}</p>
                         </div>
                       </div>
                     </div>
@@ -334,6 +393,14 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
         )}
+
+        {/* Case Form Modal */}
+        <CaseForm
+          isOpen={isCaseFormOpen}
+          onClose={handleCloseCaseForm}
+          onSuccess={handleCaseFormSuccess}
+          editCase={editingCase}
+        />
       </div>
     </div>
   )

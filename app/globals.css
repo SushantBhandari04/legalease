@@ -87,3 +87,36 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Enhanced shadcn date picker styling */
+  .rdp {
+    --rdp-cell-size: 36px;
+    --rdp-accent-color: #0d9488;
+    --rdp-background-color: #f8fafc;
+    --rdp-accent-color-dark: #0f766e;
+    --rdp-background-color-dark: #1e293b;
+    --rdp-outline: 2px solid var(--rdp-accent-color);
+    --rdp-outline-selected: 2px solid var(--rdp-accent-color);
+    margin: 0;
+  }
+  
+  .rdp-day_selected {
+    background-color: var(--rdp-accent-color) !important;
+    color: white !important;
+  }
+  
+  .rdp-day_selected:hover {
+    background-color: var(--rdp-accent-color-dark) !important;
+  }
+  
+  .rdp-day_today {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 600;
+  }
+  
+  .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+    background-color: #f1f5f9 !important;
+  }
+}
