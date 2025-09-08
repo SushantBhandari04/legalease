@@ -65,8 +65,16 @@ export function CaseTimeline({ caseData }: { caseData: Case }) {
     const eventDate = new Date(event.eventDate)
     const isValidDate = !isNaN(eventDate.getTime())
     
+    // Format date in local timezone to avoid UTC conversion issues
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
     return {
-      date: isValidDate ? eventDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: isValidDate ? formatLocalDate(eventDate) : formatLocalDate(new Date()),
       title: event.title,
       description: event.description,
       status: event.status === "completed" ? "completed" : 
@@ -166,7 +174,7 @@ export function CaseTimeline({ caseData }: { caseData: Case }) {
 
             <div className="flex flex-col items-center">
               <div className="w-14 text-xs text-slate-500 text-center">
-                {new Date(event.date).toLocaleDateString("en-US", {
+                {new Date(event.date + 'T00:00:00').toLocaleDateString("en-US", {
                   day: "numeric",
                   month: "short",
                 })}
