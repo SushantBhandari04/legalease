@@ -8,7 +8,7 @@ import TimelineEventModel from "@/model/TimelineEvent";
 // GET /api/cases/[id]/timeline - Get timeline events for a case
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,9 +17,10 @@ export async function GET(
     }
 
     await dbConnect();
+    const { id } = await params;
 
     // Validate ObjectId format
-    if (!params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       return NextResponse.json(
         { error: "Invalid case ID format" },
         { status: 400 }
@@ -28,7 +29,7 @@ export async function GET(
 
     // Verify case exists and belongs to user
     const caseData = await CaseModel.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user._id
     });
 
@@ -38,7 +39,7 @@ export async function GET(
 
     // Get timeline events for this case
     const timelineEvents = await TimelineEventModel.find({
-      caseId: params.id,
+      caseId: id,
       userId: session.user._id
     }).sort({ eventDate: 1 }); // Sort from oldest to newest (ascending order)
 
@@ -55,7 +56,7 @@ export async function GET(
 // POST /api/cases/[id]/timeline - Create a new timeline event
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -64,9 +65,10 @@ export async function POST(
     }
 
     await dbConnect();
+    const { id } = await params;
 
     // Validate ObjectId format
-    if (!params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       return NextResponse.json(
         { error: "Invalid case ID format" },
         { status: 400 }
@@ -75,7 +77,7 @@ export async function POST(
 
     // Verify case exists and belongs to user
     const caseData = await CaseModel.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user._id
     });
 
@@ -116,7 +118,7 @@ export async function POST(
 
     // Create new timeline event
     const timelineEvent = new TimelineEventModel({
-      caseId: params.id,
+      caseId: id,
       title,
       description,
       eventDate: new Date(eventDate),

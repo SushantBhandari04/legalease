@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Download, Trash2, FileText, Eye, Calendar, User, Tag, AlertCircle } from "lucide-react"
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react"
+import { Download, Trash2, FileText, Eye, Calendar, User, Tag, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,61 +12,90 @@ interface DocumentListProps {
   caseId: string
 }
 
-export function DocumentList({ caseId }: DocumentListProps) {
+export interface DocumentListRef {
+  refreshDocuments: () => Promise<void>
+}
+
+export const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(({ caseId }, ref) => {
   const [documents, setDocuments] = useState<CaseDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null)
+  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null)
+
+  const loadDocuments = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/cases/${caseId}/documents`, {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch documents")
+      }
+
+      const data = await response.json()
+      setDocuments(data.documents || [])
+    } catch (err) {
+      console.error("Error loading documents:", err)
+      setError("Failed to load documents")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadDocuments = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch(`/api/cases/${caseId}/documents`, {
-          credentials: "include",
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch documents")
-        }
-
-        const data = await response.json()
-        setDocuments(data.documents || [])
-      } catch (err) {
-        console.error("Error loading documents:", err)
-        setError("Failed to load documents")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     if (caseId) {
       loadDocuments()
     }
   }, [caseId])
 
+  // Expose refresh function to parent component
+  useImperativeHandle(ref, () => ({
+    refreshDocuments: loadDocuments
+  }))
+
   const handleDownload = async (docId: string, fileName: string) => {
     try {
+      setDownloadingDocId(docId)
+      console.log("Starting download for:", fileName)
       const response = await fetch(`/api/cases/${caseId}/documents/${docId}`, {
         credentials: "include",
       })
 
+      console.log("Download response status:", response.status)
+      console.log("Download response headers:", Object.fromEntries(response.headers.entries()))
+
       if (!response.ok) {
-        throw new Error("Failed to download document")
+        const errorText = await response.text()
+        console.error("Download failed:", response.status, errorText)
+        throw new Error(`Failed to download document: ${response.status}`)
       }
 
       const blob = await response.blob()
+      console.log("Downloaded blob:", {
+        size: blob.size,
+        type: blob.type
+      })
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = fileName
+      a.style.display = 'none'
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      
+      // Clean up
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 100)
     } catch (err) {
       console.error("Error downloading document:", err)
       setError("Failed to download document")
+    } finally {
+      setDownloadingDocId(null)
     }
   }
 
@@ -220,10 +249,20 @@ export function DocumentList({ caseId }: DocumentListProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => handleDownload(doc._id, doc.originalName)}
+                  disabled={downloadingDocId === doc._id}
                   className="border-teal-300 text-teal-600 hover:bg-teal-50"
                 >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
+                  {downloadingDocId === doc._id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </>
+                  )}
                 </Button>
                 
                 <AlertDialog>
@@ -264,4 +303,6 @@ export function DocumentList({ caseId }: DocumentListProps) {
       ))}
     </div>
   )
-}
+})
+
+DocumentList.displayName = "DocumentList"

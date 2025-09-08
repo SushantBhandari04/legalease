@@ -4,14 +4,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import dbConnect from "@/lib/dbConnect";
 import CaseModel from "@/model/Case";
 import DocumentModel from "@/model/Document";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { uploadToCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary";
 
 // GET /api/cases/[id]/documents - Get all documents for a case
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,10 +18,11 @@ export async function GET(
     }
 
     await dbConnect();
+    const { id } = await params;
 
     // Verify case exists and belongs to user
     const caseData = await CaseModel.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user._id
     });
 
@@ -33,7 +32,7 @@ export async function GET(
 
     // Get documents for this case
     const documents = await DocumentModel.find({
-      caseId: params.id,
+      caseId: id,
       userId: session.user._id
     }).sort({ uploadDate: -1 });
 
@@ -50,7 +49,7 @@ export async function GET(
 // POST /api/cases/[id]/documents - Upload a new document
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -59,10 +58,11 @@ export async function POST(
     }
 
     await dbConnect();
+    const { id } = await params;
 
     // Verify case exists and belongs to user
     const caseData = await CaseModel.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user._id
     });
 
@@ -107,31 +107,39 @@ export async function POST(
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), "uploads", "documents");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     // Generate unique filename
     const timestamp = Date.now();
     const fileExtension = file.name.split('.').pop();
-    const fileName = `${params.id}_${timestamp}.${fileExtension}`;
-    const filePath = join(uploadsDir, fileName);
+    const fileName = `${id}_${timestamp}.${fileExtension}`;
 
-    // Save file to disk
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      return NextResponse.json(
+        { error: "Cloudinary is not configured. Please set up CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables." },
+        { status: 500 }
+      );
+    }
+
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+
+    // Upload to Cloudinary
+    const cloudinaryResult = await uploadToCloudinary(
+      buffer,
+      fileName,
+      `legal-ease/cases/${id}/documents`
+    );
 
     // Create document record
     const document = new DocumentModel({
-      caseId: params.id,
+      caseId: id,
       fileName: fileName,
       originalName: file.name,
       fileSize: file.size,
       mimeType: file.type,
-      filePath: filePath,
+      cloudinaryUrl: cloudinaryResult.url,
+      cloudinaryPublicId: cloudinaryResult.public_id,
       uploadedBy: session.user._id,
       documentType: documentType || "other",
       description: description || "",

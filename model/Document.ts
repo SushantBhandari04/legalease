@@ -6,7 +6,8 @@ export interface CaseDocument extends Document {
   originalName: string;
   fileSize: number;
   mimeType: string;
-  filePath: string; // Path where file is stored
+  cloudinaryUrl: string; // Cloudinary URL where file is stored
+  cloudinaryPublicId: string; // Cloudinary public ID for file management
   uploadedBy: string; // User ID who uploaded the file
   uploadDate: Date;
   documentType: "pleading" | "evidence" | "correspondence" | "judgment" | "other";
@@ -46,9 +47,14 @@ const DocumentSchema: Schema<CaseDocument> = new mongoose.Schema({
     required: [true, "MIME type is required"],
     trim: true
   },
-  filePath: {
+  cloudinaryUrl: {
     type: String,
-    required: [true, "File path is required"],
+    required: [true, "Cloudinary URL is required"],
+    trim: true
+  },
+  cloudinaryPublicId: {
+    type: String,
+    required: [true, "Cloudinary public ID is required"],
     trim: true
   },
   uploadedBy: {

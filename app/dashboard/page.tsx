@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2, Upload, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { CaseTimeline } from "@/components/case-timeline"
-import { DocumentList } from "@/components/document-list"
+import { DocumentList, DocumentListRef } from "@/components/document-list"
 import { DocumentUpload } from "@/components/document-upload"
 import { CaseForm } from "@/components/case-form"
 import { fetchCases, CaseFilters, deleteCase } from "@/lib/cases"
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [editingCase, setEditingCase] = useState<Case | null>(null)
   const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const documentListRef = useRef<DocumentListRef>(null)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -534,7 +535,7 @@ export default function DashboardPage() {
                           Upload Document
                         </Button>
                       </div>
-                      <DocumentList caseId={selectedCase._id} />
+                      <DocumentList ref={documentListRef} caseId={selectedCase._id} />
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -556,8 +557,11 @@ export default function DashboardPage() {
           <DocumentUpload
             isOpen={isDocumentUploadOpen}
             onClose={() => setIsDocumentUploadOpen(false)}
-            onSuccess={() => {
-              // Documents will refresh automatically via DocumentList component
+            onSuccess={async () => {
+              // Refresh documents list after successful upload
+              if (documentListRef.current) {
+                await documentListRef.current.refreshDocuments()
+              }
             }}
             caseId={selectedCase._id}
           />
