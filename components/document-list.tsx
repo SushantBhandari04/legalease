@@ -5,6 +5,7 @@ import { Download, Trash2, FileText, Eye, Calendar, User, Tag, AlertCircle } fro
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { CaseDocument } from "@/model/Document"
 
 interface DocumentListProps {
@@ -15,6 +16,7 @@ export function DocumentList({ caseId }: DocumentListProps) {
   const [documents, setDocuments] = useState<CaseDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadDocuments = async () => {
@@ -69,11 +71,8 @@ export function DocumentList({ caseId }: DocumentListProps) {
   }
 
   const handleDelete = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document?")) {
-      return
-    }
-
     try {
+      setDeletingDocId(docId)
       const response = await fetch(`/api/cases/${caseId}/documents/${docId}`, {
         method: "DELETE",
         credentials: "include",
@@ -88,6 +87,8 @@ export function DocumentList({ caseId }: DocumentListProps) {
     } catch (err) {
       console.error("Error deleting document:", err)
       setError("Failed to delete document")
+    } finally {
+      setDeletingDocId(null)
     }
   }
 
@@ -225,14 +226,37 @@ export function DocumentList({ caseId }: DocumentListProps) {
                   Download
                 </Button>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(doc._id)}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={deletingDocId === doc._id}
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingDocId === doc._id && "Deleting..."}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{doc.originalName}"? This action cannot be undone.
+                        The document will be permanently removed from the case.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(doc._id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete Document
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>

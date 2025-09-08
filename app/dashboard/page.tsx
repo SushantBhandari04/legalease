@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2, Upload } from "lucide-react"
+import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2, Upload, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -10,11 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { CaseTimeline } from "@/components/case-timeline"
 import { DocumentList } from "@/components/document-list"
 import { DocumentUpload } from "@/components/document-upload"
 import { CaseForm } from "@/components/case-form"
-import { fetchCases, CaseFilters } from "@/lib/cases"
+import { fetchCases, CaseFilters, deleteCase } from "@/lib/cases"
 import { Case } from "@/model/Case"
 
 export default function DashboardPage() {
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false)
   const [editingCase, setEditingCase] = useState<Case | null>(null)
   const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -114,6 +116,34 @@ export default function DashboardPage() {
 
   const handleCaseFormSuccess = () => {
     loadCases() // Refresh the cases list
+  }
+
+  // Handle case deletion
+  const handleDeleteCase = async (caseId: string) => {
+    try {
+      setIsDeleting(true)
+      await deleteCase(caseId)
+      
+      // Remove the case from the local state
+      setCases(prevCases => prevCases.filter(caseItem => caseItem._id !== caseId))
+      
+      // If the deleted case was selected, clear the selection
+      if (selectedCase && selectedCase._id === caseId) {
+        setSelectedCase(null)
+      }
+      
+      // Update pagination if needed
+      setPagination(prev => ({
+        ...prev,
+        totalCount: prev.totalCount - 1
+      }))
+      
+    } catch (error) {
+      console.error("Error deleting case:", error)
+      setError("Failed to delete case. Please try again.")
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   // Get status color
@@ -338,9 +368,41 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Case Timeline: {selectedCase.caseNumber}</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedCase(null)}>
-                    Close
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? "Deleting..." : "Delete Case"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the case 
+                            "{selectedCase.caseNumber}" and all associated data including timeline events and documents.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteCase(selectedCase._id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Case
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCase(null)}>
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -357,32 +419,106 @@ export default function DashboardPage() {
 
                   <TabsContent value="details">
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Case Number</h3>
-                          <p>{selectedCase.caseNumber}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Court</h3>
-                          <p>{selectedCase.court}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Case Type</h3>
-                          <p>{selectedCase.type}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Status</h3>
-                          <p>{selectedCase.status}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Current Stage</h3>
-                          <p>{selectedCase.stage}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-slate-500">Last Updated</h3>
-                          <p>{new Date(selectedCase.lastUpdated).toLocaleDateString()}</p>
+                      {/* All Case Information in Simple Grid */}
+                      <div className="bg-white rounded-lg border border-slate-200 p-6">
+                        <h3 className="text-lg font-semibold text-slate-800 mb-4">Case Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Case Number</h4>
+                            <p className="text-slate-900">{selectedCase.caseNumber}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Court</h4>
+                            <p className="text-slate-900">{selectedCase.court}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Case Type</h4>
+                            <p className="text-slate-900">{selectedCase.type}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Status</h4>
+                            <span className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${
+                              selectedCase.status === 'Active' ? 'bg-green-100 text-green-800' :
+                              selectedCase.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                              selectedCase.status === 'Delayed' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {selectedCase.status}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Current Stage</h4>
+                            <span className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${getStageColor(selectedCase.stage)}`}>
+                              {selectedCase.stage}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Progress</h4>
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-1 bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-teal-600 h-2 rounded-full" 
+                                  style={{ width: `${selectedCase.progress}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium text-slate-600">{selectedCase.progress}%</span>
+                            </div>
+                          </div>
+                          {selectedCase.clientName && (
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500">Client Name</h4>
+                              <p className="text-slate-900">{selectedCase.clientName}</p>
+                            </div>
+                          )}
+                          {selectedCase.opposingParty && (
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500">Opposing Party</h4>
+                              <p className="text-slate-900">{selectedCase.opposingParty}</p>
+                            </div>
+                          )}
+                          {selectedCase.caseValue && (
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500">Case Value</h4>
+                              <p className="text-slate-900">₹{selectedCase.caseValue.toLocaleString()}</p>
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Filing Date</h4>
+                            <p className="text-slate-900">{new Date(selectedCase.filingDate).toLocaleDateString()}</p>
+                          </div>
+                          {selectedCase.nextHearing && (
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-500">Next Hearing</h4>
+                              <p className="text-slate-900">{new Date(selectedCase.nextHearing).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-500">Last Updated</h4>
+                            <p className="text-slate-900">{new Date(selectedCase.lastUpdated).toLocaleDateString()}</p>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Description & Notes */}
+                      {(selectedCase.description || selectedCase.notes) && (
+                        <div className="bg-slate-50 rounded-lg border border-slate-200 p-6">
+                          <h3 className="text-lg font-semibold text-slate-800 mb-4">Additional Information</h3>
+                          <div className="space-y-4">
+                            {selectedCase.description && (
+                              <div>
+                                <h4 className="text-sm font-medium text-slate-500 mb-2">Description</h4>
+                                <p className="text-slate-700">{selectedCase.description}</p>
+                              </div>
+                            )}
+                            {selectedCase.notes && (
+                              <div>
+                                <h4 className="text-sm font-medium text-slate-500 mb-2">Notes</h4>
+                                <p className="text-slate-700">{selectedCase.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
