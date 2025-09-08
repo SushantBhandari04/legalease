@@ -110,7 +110,7 @@ export function TimelineForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300">
         <DialogHeader className="space-y-4 pb-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-teal-100 rounded-lg">

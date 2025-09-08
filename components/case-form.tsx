@@ -109,17 +109,17 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-slate-50 border-0 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300">
-        <DialogHeader className="space-y-3 pb-6 border-b border-slate-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-teal-100 rounded-lg">
-              <Plus className="h-5 w-5 text-teal-600" />
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto bg-white border-0 shadow-2xl">
+        <DialogHeader className="pb-6 border-b border-slate-200">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg">
+              <Plus className="h-6 w-6 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-2xl font-bold text-navy-900">
+              <DialogTitle className="text-2xl font-bold text-slate-900">
                 {editCase ? "Edit Case" : "Add New Case"}
               </DialogTitle>
-              <p className="text-slate-600 text-sm mt-1">
+              <p className="text-slate-600 mt-1">
                 {editCase ? "Update case information and details" : "Create a new legal case entry"}
               </p>
             </div>
@@ -129,10 +129,11 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
-            <div className="space-y-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="flex items-center space-x-2">
-                <div className="w-1 h-6 bg-teal-500 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-navy-900">Basic Information</h3>
+            <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-7 bg-gradient-to-b from-teal-500 to-teal-600 rounded-full shadow-sm"></div>
+                <h3 className="text-lg font-semibold text-slate-800">Basic Information</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-teal-200 to-transparent ml-4"></div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -229,10 +230,11 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
             </div>
 
             {/* Case Details */}
-            <div className="space-y-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="flex items-center space-x-2">
-                <div className="w-1 h-6 bg-navy-500 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-navy-900">Case Details</h3>
+            <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50/60 to-white rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-7 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full shadow-sm"></div>
+                <h3 className="text-lg font-semibold text-slate-800">Case Details</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-blue-200 to-transparent ml-4"></div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -317,10 +319,11 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
             </div>
 
             {/* Status and Dates */}
-            <div className="space-y-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="flex items-center space-x-2">
-                <div className="w-1 h-6 bg-teal-600 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-navy-900">Status and Dates</h3>
+            <div className="space-y-6 p-6 bg-gradient-to-br from-emerald-50/60 to-white rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-7 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full shadow-sm"></div>
+                <h3 className="text-lg font-semibold text-slate-800">Status and Dates</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-emerald-200 to-transparent ml-4"></div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -382,22 +385,22 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                       <FormLabel className="text-slate-700 font-medium">Filing Date</FormLabel>
                       <Popover open={filingDateOpen} onOpenChange={setFilingDateOpen}>
                         <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:ring-teal-500 bg-gradient-to-r from-white to-slate-50/30 shadow-sm hover:shadow-md transition-all duration-200",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
+                           <FormControl>
+                             <Button
+                               variant="outline"
+                               className={cn(
+                                 "w-full pl-3 text-left font-normal border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:ring-teal-500 bg-white shadow-sm hover:shadow-md transition-all duration-200",
+                                 !field.value && "text-muted-foreground"
+                               )}
+                             >
+                               {field.value ? (
+                                 format(field.value, "PPP")
+                               ) : (
+                                 <span>Pick a date</span>
+                               )}
+                               <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                             </Button>
+                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <CalendarComponent
@@ -420,9 +423,7 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                           />
                         </PopoverContent>
                       </Popover>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Select a date on or before today
-                      </p>
+                     
                       <FormMessage />
                     </FormItem>
                   )}
@@ -436,22 +437,22 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                       <FormLabel className="text-slate-700 font-medium">Next Hearing Date</FormLabel>
                       <Popover open={nextHearingOpen} onOpenChange={setNextHearingOpen}>
                         <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:ring-teal-500 bg-gradient-to-r from-white to-slate-50/30 shadow-sm hover:shadow-md transition-all duration-200",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
+                           <FormControl>
+                             <Button
+                               variant="outline"
+                               className={cn(
+                                 "w-full pl-3 text-left font-normal border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:ring-teal-500 bg-white shadow-sm hover:shadow-md transition-all duration-200",
+                                 !field.value && "text-muted-foreground"
+                               )}
+                             >
+                               {field.value ? (
+                                 format(field.value, "PPP")
+                               ) : (
+                                 <span>Pick a date</span>
+                               )}
+                               <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                             </Button>
+                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <CalendarComponent
@@ -474,9 +475,7 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                           />
                         </PopoverContent>
                       </Popover>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Select a date on or after today
-                      </p>
+                  
                       <FormMessage />
                     </FormItem>
                   )}
@@ -485,10 +484,11 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
             </div>
 
             {/* Notes */}
-            <div className="space-y-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-              <div className="flex items-center space-x-2">
-                <div className="w-1 h-6 bg-slate-500 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-navy-900">Additional Notes</h3>
+            <div className="space-y-6 p-6 bg-gradient-to-br from-amber-50/60 to-white rounded-xl border border-amber-200 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-7 bg-gradient-to-b from-amber-500 to-amber-600 rounded-full shadow-sm"></div>
+                <h3 className="text-lg font-semibold text-slate-800">Additional Notes</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-amber-200 to-transparent ml-4"></div>
               </div>
               
               <FormField
@@ -526,7 +526,8 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                 type="button" 
                 variant="outline" 
                 onClick={handleClose}
-                className="px-6 py-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+                disabled={isSubmitting}
+                className="px-8 py-3 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-lg transition-all duration-200"
               >
                 Cancel
               </Button>
@@ -535,8 +536,17 @@ export function CaseForm({ isOpen, onClose, onSuccess, editCase }: CaseFormProps
                 disabled={isSubmitting}
                 className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editCase ? "Update Case" : "Create Case"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {editCase ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-5 w-5" />
+                    {editCase ? "Update Case" : "Create Case"}
+                  </>
+                )}
               </Button>
             </div>
           </form>

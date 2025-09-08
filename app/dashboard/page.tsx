@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2 } from "lucide-react"
+import { Calendar, Filter, Search, SortAsc, SortDesc, Plus, Loader2, Upload } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CaseTimeline } from "@/components/case-timeline"
+import { DocumentList } from "@/components/document-list"
+import { DocumentUpload } from "@/components/document-upload"
 import { CaseForm } from "@/components/case-form"
 import { fetchCases, CaseFilters } from "@/lib/cases"
 import { Case } from "@/model/Case"
@@ -26,6 +28,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false)
   const [editingCase, setEditingCase] = useState<Case | null>(null)
+  const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -384,8 +387,18 @@ export default function DashboardPage() {
                   </TabsContent>
 
                   <TabsContent value="documents">
-                    <div className="text-center py-8">
-                      <p className="text-slate-500">No documents available for this case.</p>
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold text-slate-800">Case Documents</h3>
+                        <Button
+                          onClick={() => setIsDocumentUploadOpen(true)}
+                          className="bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Document
+                        </Button>
+                      </div>
+                      <DocumentList caseId={selectedCase._id} />
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -401,6 +414,18 @@ export default function DashboardPage() {
           onSuccess={handleCaseFormSuccess}
           editCase={editingCase}
         />
+
+        {/* Document Upload Modal */}
+        {selectedCase && (
+          <DocumentUpload
+            isOpen={isDocumentUploadOpen}
+            onClose={() => setIsDocumentUploadOpen(false)}
+            onSuccess={() => {
+              // Documents will refresh automatically via DocumentList component
+            }}
+            caseId={selectedCase._id}
+          />
+        )}
       </div>
     </div>
   )
