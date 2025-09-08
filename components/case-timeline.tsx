@@ -162,12 +162,11 @@ export function CaseTimeline({ caseData }: { caseData: Case }) {
 
         <div className="space-y-8">
         {displayEvents.map((event, index) => (
-          <div key={index} className="relative flex items-start gap-4">
-            <div className="absolute left-7 top-7 bottom-0 w-0.5 bg-slate-200" />
+          <div key={`${event.date}-${event.title}-${index}`} className="relative flex items-start gap-4">
 
             <div className="flex flex-col items-center">
               <div className="w-14 text-xs text-slate-500 text-center">
-                {new Date(event.date).toLocaleDateString("en-IN", {
+                {new Date(event.date).toLocaleDateString("en-US", {
                   day: "numeric",
                   month: "short",
                 })}

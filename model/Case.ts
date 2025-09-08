@@ -26,8 +26,7 @@ const CaseSchema: Schema<Case> = new mongoose.Schema({
   caseNumber: {
     type: String,
     required: [true, "Case number is required"],
-    trim: true,
-    unique: true
+    trim: true
   },
   title: {
     type: String,
@@ -105,7 +104,7 @@ const CaseSchema: Schema<Case> = new mongoose.Schema({
 });
 
 // Index for efficient queries
-CaseSchema.index({ userId: 1, caseNumber: 1 });
+CaseSchema.index({ userId: 1, caseNumber: 1 }, { unique: true }); // Unique case number per user
 CaseSchema.index({ userId: 1, status: 1 });
 CaseSchema.index({ userId: 1, stage: 1 });
 

@@ -5,10 +5,10 @@ import dbConnect from "@/lib/dbConnect";
 import CaseModel from "@/model/Case";
 import TimelineEventModel from "@/model/TimelineEvent";
 
-// GET /api/cases/[id]/timeline - Get timeline events for a case
-export async function GET(
+// DELETE /api/cases/[id]/timeline/[eventId] - Delete a timeline event
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string; eventId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,9 +19,9 @@ export async function GET(
     await dbConnect();
 
     // Validate ObjectId format
-    if (!params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!params.id.match(/^[0-9a-fA-F]{24}$/) || !params.eventId.match(/^[0-9a-fA-F]{24}$/)) {
       return NextResponse.json(
-        { error: "Invalid case ID format" },
+        { error: "Invalid ID format" },
         { status: 400 }
       );
     }
@@ -36,26 +36,31 @@ export async function GET(
       return NextResponse.json({ error: "Case not found" }, { status: 404 });
     }
 
-    // Get timeline events for this case
-    const timelineEvents = await TimelineEventModel.find({
+    // Find and delete the timeline event
+    const timelineEvent = await TimelineEventModel.findOneAndDelete({
+      _id: params.eventId,
       caseId: params.id,
       userId: session.user._id
-    }).sort({ eventDate: 1 }); // Sort from oldest to newest (ascending order)
+    });
 
-    return NextResponse.json({ timelineEvents });
+    if (!timelineEvent) {
+      return NextResponse.json({ error: "Timeline event not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Timeline event deleted successfully" });
   } catch (error) {
-    console.error("Error fetching timeline events:", error);
+    console.error("Error deleting timeline event:", error);
     return NextResponse.json(
-      { error: "Failed to fetch timeline events" },
+      { error: "Failed to delete timeline event" },
       { status: 500 }
     );
   }
 }
 
-// POST /api/cases/[id]/timeline - Create a new timeline event
-export async function POST(
+// PUT /api/cases/[id]/timeline/[eventId] - Update a timeline event
+export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string; eventId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -66,9 +71,9 @@ export async function POST(
     await dbConnect();
 
     // Validate ObjectId format
-    if (!params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!params.id.match(/^[0-9a-fA-F]{24}$/) || !params.eventId.match(/^[0-9a-fA-F]{24}$/)) {
       return NextResponse.json(
-        { error: "Invalid case ID format" },
+        { error: "Invalid ID format" },
         { status: 400 }
       );
     }
@@ -114,27 +119,35 @@ export async function POST(
       }
     }
 
-    // Create new timeline event
-    const timelineEvent = new TimelineEventModel({
-      caseId: params.id,
-      title,
-      description,
-      eventDate: new Date(eventDate),
-      eventType,
-      status: status || "completed",
-      metadata,
-      userId: session.user._id
-    });
+    // Update the timeline event
+    const updatedEvent = await TimelineEventModel.findOneAndUpdate(
+      {
+        _id: params.eventId,
+        caseId: params.id,
+        userId: session.user._id
+      },
+      {
+        title,
+        description,
+        eventDate: new Date(eventDate),
+        eventType,
+        status: status || "completed",
+        metadata,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
 
-    await timelineEvent.save();
+    if (!updatedEvent) {
+      return NextResponse.json({ error: "Timeline event not found" }, { status: 404 });
+    }
 
-    return NextResponse.json({ timelineEvent }, { status: 201 });
+    return NextResponse.json({ timelineEvent: updatedEvent });
   } catch (error) {
-    console.error("Error creating timeline event:", error);
+    console.error("Error updating timeline event:", error);
     return NextResponse.json(
-      { error: "Failed to create timeline event" },
+      { error: "Failed to update timeline event" },
       { status: 500 }
     );
   }
 }
-

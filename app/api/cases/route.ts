@@ -123,7 +123,8 @@ export async function POST(request: NextRequest) {
 
     // Check if case number already exists
     const existingCase = await CaseModel.findOne({ 
-      caseNumber: body.caseNumber 
+      caseNumber: body.caseNumber,
+      userId: session.user._id
     });
 
     if (existingCase) {

@@ -95,10 +95,11 @@ export async function PUT(
       );
     }
 
-    // If case number is being updated, check for duplicates
+    // If case number is being updated, check for duplicates within the same user
     if (body.caseNumber && body.caseNumber !== existingCase.caseNumber) {
       const duplicateCase = await CaseModel.findOne({
         caseNumber: body.caseNumber,
+        userId: session.user._id,
         _id: { $ne: caseId }
       });
 
