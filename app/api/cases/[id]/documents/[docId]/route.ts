@@ -8,7 +8,7 @@ import { deleteFromCloudinary, isCloudinaryConfigured, getCloudinaryFileBuffer }
 // GET /api/cases/[id]/documents/[docId] - Download a document
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; docId: string }> }
+  { params }: { params: { id: string; docId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(
     }
 
     await dbConnect();
-    const { id, docId } = await params;
+    const { id, docId } =  await params;
 
     // Find document and verify ownership
     const document = await DocumentModel.findOne({
@@ -49,7 +49,8 @@ export async function GET(
     
     try {
       // Determine resource type based on file type
-      const resourceType = document.mimeType === 'application/pdf' ? 'raw' : 'image';
+      // const resourceType = document.mimeType === 'application/pdf' ? 'raw' : 'image';
+      const resourceType = document.mimeType?.startsWith('image/') ? 'image' : 'raw';
       const fileBuffer = await getCloudinaryFileBuffer(document.cloudinaryPublicId, resourceType);
       console.log("Downloaded file:", {
         fileName: document.originalName,
@@ -59,10 +60,14 @@ export async function GET(
       });
 
       // Return file with appropriate headers
+      // Properly encode filename for HTTP headers to handle Unicode characters
+      const encodedFilename = encodeURIComponent(document.originalName);
+      const contentDisposition = `attachment; filename*=UTF-8''${encodedFilename}`;
+      
       return new NextResponse(fileBuffer, {
         headers: {
           "Content-Type": document.mimeType,
-          "Content-Disposition": `attachment; filename="${document.originalName}"`,
+          "Content-Disposition": contentDisposition,
           "Content-Length": fileBuffer.length.toString(),
           "Cache-Control": "no-cache",
         },
@@ -85,7 +90,7 @@ export async function GET(
 // DELETE /api/cases/[id]/documents/[docId] - Delete a document
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; docId: string }> }
+  { params }: { params: { id: string; docId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -94,7 +99,7 @@ export async function DELETE(
     }
 
     await dbConnect();
-    const { id, docId } = await params;
+    const { id, docId } =  await params;
 
     // Find document and verify ownership
     const document = await DocumentModel.findOne({

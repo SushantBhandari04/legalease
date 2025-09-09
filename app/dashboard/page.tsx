@@ -74,7 +74,7 @@ export default function DashboardPage() {
     if (status === "authenticated") {
       loadCases()
     }
-  }, [status, filterStatus, searchQuery, sortOrder, pagination.currentPage])
+  }, [status, filterStatus, sortOrder, pagination.currentPage])
 
   // Debounced search
   useEffect(() => {
@@ -276,7 +276,7 @@ export default function DashboardPage() {
             {cases.length > 0 ? (
               cases.map((caseItem, index) => (
               <motion.div
-                key={caseItem.id || caseItem._id}
+              key={caseItem._id || caseItem.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}

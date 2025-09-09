@@ -9,7 +9,7 @@ import { uploadToCloudinary, isCloudinaryConfigured } from "@/lib/cloudinary";
 // GET /api/cases/[id]/documents - Get all documents for a case
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -49,7 +49,7 @@ export async function GET(
 // POST /api/cases/[id]/documents - Upload a new document
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);

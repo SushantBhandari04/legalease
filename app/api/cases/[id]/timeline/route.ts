@@ -8,7 +8,7 @@ import TimelineEventModel from "@/model/TimelineEvent";
 // GET /api/cases/[id]/timeline - Get timeline events for a case
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -56,7 +56,7 @@ export async function GET(
 // POST /api/cases/[id]/timeline - Create a new timeline event
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -96,6 +96,15 @@ export async function POST(
       );
     }
 
+      // Validate eventDate
+    const parsedDate = new Date(eventDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid eventDate" },
+        { status: 400 }
+      );
+    }
+
     // Validate event type
     const validEventTypes = ["filing", "hearing", "evidence", "document", "status_change", "custom"];
     if (!validEventTypes.includes(eventType)) {
@@ -121,7 +130,7 @@ export async function POST(
       caseId: id,
       title,
       description,
-      eventDate: new Date(eventDate),
+      eventDate: parsedDate,
       eventType,
       status: status || "completed",
       metadata,

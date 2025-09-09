@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import dbConnect from "@/lib/dbConnect";
 import CaseModel from "@/model/Case";
+import TimelineEventModel from "@/model/TimelineEvent";
+import DocumentModel from "@/model/Document";
 
 // GET /api/cases/[id] - Fetch a specific case by ID
 export async function GET(
@@ -11,7 +13,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?._id) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -61,7 +63,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?._id) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -139,7 +141,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?._id) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -147,7 +149,7 @@ export async function DELETE(
       );
     }
 
-    const caseId = params.id;
+    const caseId = (await params).id;
 
     await dbConnect();
 
@@ -173,7 +175,14 @@ export async function DELETE(
     }
 
     // Delete the case
-    await CaseModel.findByIdAndDelete(caseId);
+    // await CaseModel.findByIdAndDelete(caseId);
+
+    // Delete the case and related data
+    await Promise.all([
+      CaseModel.findOneAndDelete({ _id: caseId, userId: session.user._id }),
+      TimelineEventModel.deleteMany({ caseId, userId: session.user._id }),
+      DocumentModel.deleteMany({ caseId, userId: session.user._id }),
+    ]);
 
     return NextResponse.json(
       { message: "Case deleted successfully" },
